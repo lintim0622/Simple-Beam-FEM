@@ -76,10 +76,10 @@ class Theory(object):
         return self.a
 
     def H(self, t):
-        if (t < self.tau):
-            return 0.0
-        else:
+        if (t >= self.tau):
             return 1.0
+        else:
+            return 0.0
         
     def Tno(self, n):
         return (2.0*self.get_uo()/(n*self.pi))*(1.0-pow(-1.0, n))
@@ -109,6 +109,16 @@ class Theory(object):
             Tn = self.Tnf(n, t)
             deflection += Tn*self.mode_shape(n, x)
         return deflection
+    
+def rede_data(path, Nt):
+    disp = np.zeros(Nt-1)
+    with open(path, 'r') as ifile:
+        i = 0
+        for text in ifile:
+            text = text.split()
+            disp[i] = float(text[3])
+            i += 1
+    return disp
 
 
 if __name__ == "__main__":
@@ -118,7 +128,7 @@ if __name__ == "__main__":
     # set material
     E   = 432e+6
     I   = 1/3
-    rho = 2300.0
+    rho = 960.0
     A   = 1.0
     L   = 10.0
     Nx  = 1001
@@ -129,12 +139,12 @@ if __name__ == "__main__":
 
     # set external force -> [time && magnitude && position]
     tau = 0.0
-    p   = -1e+5
+    p   = -1000.0
     a   = 0.5*L
 
     # set time
-    endTime = 3.0
-    Nt      = 3001
+    endTime = 1.0
+    Nt      = 10001
     
     # set mode
     nmode = 1
@@ -153,15 +163,21 @@ if __name__ == "__main__":
     for t in tns:
         u[i] = sBeam.u(x, t)
         i += 1
+        
+    # READ FEM DATA
+    path = r"D:\有限元素法\Final Report\FEM DYNAMICS DATA.txt"
+    ana_disp = rede_data(path, Nt)
    
     import matplotlib.pyplot as plt
     plt.rcParams["font.family"] = "Times New Roman"
     
     # deflection in x=L/2 with time history
     plt.figure(0)
-    plt.plot(tns, u, "-", lw=5, color="tab:blue", label="x = 0.5L")
+    plt.plot(tns, u, "-", lw=5, color="tab:blue", label="theoretical")
+    plt.plot(tns[:Nt-1], ana_disp, "-", lw=5, color="tab:orange", label="numerical")
     plt.xlabel("time (sec)", fontsize=25)
     plt.ylabel("deflection (m)", fontsize=25)
+    plt.title("x = 0.5L", fontsize=25)
     plt.tick_params(labelsize=25)
     plt.xlim(0, endTime)
     plt.legend(fontsize=25, loc="upper right", framealpha=1)

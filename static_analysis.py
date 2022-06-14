@@ -286,6 +286,7 @@ class Static_Solver(object):
 
 if __name__ == "__main__":
     
+    from sys import exit
     from time import time
     from mesh import Mesh, Material
     
@@ -295,8 +296,8 @@ if __name__ == "__main__":
     L = 10.0 # beam length
     h = 2.0  # beam width
     w = 0.5  # beam thickness
-    Nx = 10
-    Ny = 2
+    Nx = 50
+    Ny = 10
     
     # set material
     rho = 960.0
@@ -304,16 +305,17 @@ if __name__ == "__main__":
     v = 0.3
     
     # set external force with [apply time] and [node-ID] and [vector]
-    pid = 16 
+    pid = 280 
     P = [0.0, -1000.0] 
     
     # Boundary ID
-    bid_list=[0, 30]
+    bid_list=[0, 550]
     
     elastic = Material(rho, E, v)
     elastic.cross_section(h, w)
     msh = Mesh(L, h, Nx, Ny)
-
+    # exit()
+    
     cal = Calculate(msh)
     cal.apply_info(pid, P)
     cal.single_elem_matrix(elastic)
@@ -331,6 +333,6 @@ if __name__ == "__main__":
     
     msh.plot_fig(is_plot=False)
 
-    print("numerical solution =", round(msh.nodes[pid].displacement[1], 8), '\n')
+    print("numerical solution =", round(msh.nodes[pid].displacement[1], 7), '\n')
     print(["time-used=", time()-t0])
     

@@ -105,6 +105,10 @@ class Dynamics_Solver(object):
             self.v[i+1][j] = self.v[i][j] + self.dt*self.a[i][j]
             self.u[i+1][j] = self.u[i][j] + self.dt*self.v[i+1][j]
 
+    def get_disp_vector(self, msh, global_U):
+        U = global_U.reshape(msh.tot_node_num, 2)
+        return U
+
     def update_msh_disp(self, i, msh, F_f):
         global_U = np.zeros(self.tot_dof_num)
         for j in range(self.free_dof_num):
@@ -115,51 +119,71 @@ class Dynamics_Solver(object):
             node.displacement[0] += global_U[i]
             node.displacement[1] += global_U[i+1]
             i += 2
+        return self.get_disp_vector(msh, global_U)
 
-def output(i, msh, tns, k):
-    fig, ax = plt.subplots(figsize=(16, 9), dpi=150)
-    plt.ion()    
-    n3x = msh.elements[0].n3.position
-    n4x = msh.elements[0].n4.position
-    ax.plot(n3x[0], n3x[1], "-", lw=1, color="gray", label="undeformed")
-    ax.plot(n3x[0], n3x[1], "--", lw=1, color="tab:red", label="deformed")
-                
-    for ie in msh.elements:
-        n1x = ie.n1.position
-        n2x = ie.n2.position
-        n3x = ie.n3.position
-        n4x = ie.n4.position
-        ax.plot([n1x[0], n2x[0]], [n1x[1], n2x[1]], "-", lw=1, color="gray")
-        ax.plot([n3x[0], n4x[0]], [n3x[1], n4x[1]], "-", lw=1, color="gray")
-        ax.plot([n1x[0], n4x[0]], [n1x[1], n4x[1]], "-", lw=1, color="gray")
-        ax.plot([n2x[0], n3x[0]], [n2x[1], n3x[1]], "-", lw=1, color="gray")
+class Data(object):
+    def __init__(self, msh, Dynamics_Solver):
+        self.msh = msh
+        self.Dys = Dynamics_Solver
+        self.U   = [0]*(Dynamics_Solver.len_tns-1)
         
-        ax.plot([n1x[0]+ie.n1.displacement[0], n2x[0]+ie.n2.displacement[0]], [n1x[1]+ie.n1.displacement[1], n2x[1]+ie.n2.displacement[1]], "--", lw=1, color="tab:red")
-        ax.plot([n3x[0]+ie.n3.displacement[0], n4x[0]+ie.n4.displacement[0]], [n3x[1]+ie.n3.displacement[1], n4x[1]+ie.n4.displacement[1]], "--", lw=1, color="tab:red")
-        ax.plot([n1x[0]+ie.n1.displacement[0], n4x[0]+ie.n4.displacement[0]], [n1x[1]+ie.n1.displacement[1], n4x[1]+ie.n4.displacement[1]], "--", lw=1, color="tab:red")
-        ax.plot([n2x[0]+ie.n2.displacement[0], n3x[0]+ie.n3.displacement[0]], [n2x[1]+ie.n2.displacement[1], n3x[1]+ie.n3.displacement[1]], "--", lw=1, color="tab:red")
-        
-    ax.set_xlabel("Length (m)", fontsize=25)
-    ax.set_ylabel("Height (m)", fontsize=25)
-    ax.set_xlim(-1.0, 11.0)
-    ax.set_ylim(-1.1, 3.1)
-    
-    ax.set_title("t = %.2f (s)"%tns[i], fontsize=25)
-    ax.legend(loc="upper left", fontsize=15, framealpha=1)
-    ax.set_aspect('equal', 'box')
-    plt.tick_params(labelsize=25)
-    plt.ioff()
-    plt.savefig(r"D:\有限元素法\Final Report\fig_store\%07d_deformed.png"%(i+1+k))
-    plt.close("all")
-
-def is_out_fig(is_plot):
-    if (is_plot):
-        if (i % 10 == 0):
-            output(i, msh, tns, k=0)
+    def output_fig(self, i, tns, k):
+        fig, ax = plt.subplots(figsize=(16, 9), dpi=150)
+        plt.ion()    
+        n3x = self.msh.elements[0].n3.position
+        n4x = self.msh.elements[0].n4.position
+        ax.plot(n3x[0], n3x[1], "-", lw=1, color="gray", label="undeformed")
+        ax.plot(n3x[0], n3x[1], "--", lw=1, color="tab:red", label="deformed")
                     
-        if (i == (DynSol.len_tns-1-1)):
-            for k in range(5):
-                output(i, msh, tns, k)      
+        for ie in self.msh.elements:
+            n1x = ie.n1.position
+            n2x = ie.n2.position
+            n3x = ie.n3.position
+            n4x = ie.n4.position
+            ax.plot([n1x[0], n2x[0]], [n1x[1], n2x[1]], "-", lw=1, color="gray")
+            ax.plot([n3x[0], n4x[0]], [n3x[1], n4x[1]], "-", lw=1, color="gray")
+            ax.plot([n1x[0], n4x[0]], [n1x[1], n4x[1]], "-", lw=1, color="gray")
+            ax.plot([n2x[0], n3x[0]], [n2x[1], n3x[1]], "-", lw=1, color="gray")
+            
+            ax.plot([n1x[0]+ie.n1.displacement[0], n2x[0]+ie.n2.displacement[0]], [n1x[1]+ie.n1.displacement[1], n2x[1]+ie.n2.displacement[1]], "--", lw=1, color="tab:red")
+            ax.plot([n3x[0]+ie.n3.displacement[0], n4x[0]+ie.n4.displacement[0]], [n3x[1]+ie.n3.displacement[1], n4x[1]+ie.n4.displacement[1]], "--", lw=1, color="tab:red")
+            ax.plot([n1x[0]+ie.n1.displacement[0], n4x[0]+ie.n4.displacement[0]], [n1x[1]+ie.n1.displacement[1], n4x[1]+ie.n4.displacement[1]], "--", lw=1, color="tab:red")
+            ax.plot([n2x[0]+ie.n2.displacement[0], n3x[0]+ie.n3.displacement[0]], [n2x[1]+ie.n2.displacement[1], n3x[1]+ie.n3.displacement[1]], "--", lw=1, color="tab:red")
+            
+        ax.set_xlabel("Length (m)", fontsize=25)
+        ax.set_ylabel("Height (m)", fontsize=25)
+        ax.set_xlim(-1.0, 11.0)
+        ax.set_ylim(-1.1, 3.1)
+        
+        ax.set_title("t = %.2f (s)"%tns[i], fontsize=25)
+        ax.legend(loc="upper left", fontsize=15, framealpha=1)
+        ax.set_aspect('equal', 'box')
+        plt.tick_params(labelsize=25)
+        plt.ioff()
+        plt.savefig(r"D:\有限元素法\Final Report\fig_store\%07d_deformed.png"%(i+1+k))
+        plt.close("all")
+
+    def is_out_fig(self, is_plot, i, tns):
+        if (is_plot):
+            if (i % 100 == 0):
+                self.output_fig(i, tns, k=0)
+                        
+            if (i == (self.Dys.len_tns-1-1)):
+                for k in range(5):
+                    self.output_fig(i, tns, k)
+
+    def input_data(self, i, U):
+        self.U[i] = U
+        
+    def output_data(self, pid):
+        with open("FEM DYNAMICS DATA.txt", 'w') as ofile:
+            for i in range(self.Dys.len_tns-1):
+                for j in range(self.msh.tot_node_num):
+                    if (j == pid):
+                        text = "{0:7d}{1:7d}{2:>14.4e}{3:>14.4e}".format(i, j, self.U[i][j, 0], self.U[i][j, 1])
+                        ofile.write(text+"\n")
+        print("FEM DYNAMICS DATA.txt has been output"+"\n")
+            
 
 if __name__ == "__main__":
     
@@ -175,25 +199,25 @@ if __name__ == "__main__":
     L = 10.0 # beam length
     h = 2.0  # beam width
     w = 0.5  # beam thickness
-    Nx = 10
-    Ny = 2
+    Nx = 50
+    Ny = 10
 
     # set material
-    rho = 2300.0
+    rho = 960.0
     E = 432e+6
     v = 0.3
 
     #set run time
-    EndTime = 3.0
-    dt = 1e-3
+    EndTime = 1.0
+    dt = 1e-4
 
     # set external force with [apply time] and [node-ID] and [vector]
     ti = 0.0
-    pid = 16 
-    P = [0.0, -1e+5] 
+    pid = 280 
+    P = [0.0, -1e+3] 
 
     # Boundary ID
-    bid_list=[0, 30]
+    bid_list=[0, 550]
 
     elastic = Material(rho, E, v)
     elastic.cross_section(h, w)
@@ -212,7 +236,6 @@ if __name__ == "__main__":
     StaSol.apply_BC(msh, bid_list) # simply supported beam
     StaSol.rearrange(msh, M, K, F)
     StaSol.update_msh_disp(msh)
-    U = StaSol.get_disp_vector(msh)
 
     M_ff = StaSol.get_mass_free()
     K_ff = StaSol.get_stiffness_free()
@@ -228,20 +251,23 @@ if __name__ == "__main__":
     if (ti == 0.0):
         print("numerical solution =", round(msh.nodes[pid].displacement[1], 8), '\n')
     
-    # exit()
-    is_plot = True
+    is_plot = False
+    data = Data(msh, DynSol)
     plt.rcParams["font.family"] = "Times New Roman"
     for i in range(DynSol.len_tns-1): # 
         t = tns[i]
+        
         if (i != 0):
             DynSol.node_f_ext(t, msh, cal, ti)
             F = DynSol.cal_Force_vector(t, ti, msh)
             F_f = DynSol.cal_Force_free(t, ti, F)
+            
         DynSol.integral(i, F_f)
-        DynSol.update_msh_disp(i, msh, F_f)
+        U = DynSol.update_msh_disp(i, msh, F_f)
         
-        is_out_fig(is_plot)
-
+        data.is_out_fig(is_plot, i, tns)
+        data.input_data(i, U)
+    data.output_data(pid)
     print(["time-used=", time()-t0])
     
     

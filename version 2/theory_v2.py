@@ -178,7 +178,7 @@ if __name__ == "__main__":
     theory.set_tau(0.0)              # 集中力作用時間
     theory.set_F_ext(10.0)           # 外力大小（單位 N）
     theory.set_a(L / 2)              # 施力位置（梁中心）
-    theory.set_mode(3)
+    theory.set_mode(1)
 
     theory_disp = np.array([theory.u(L / 2, t) for t in tns[:-1]])
 

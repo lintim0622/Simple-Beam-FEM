@@ -4,7 +4,7 @@ import time
 from sys import exit
 
 # Import classes and timer from mesh_module
-from mesh_v2 import Material, Node, Element, Mesh, timer
+from mesh_v2 import Material, Mesh, timer
 
 # --- Core FEM Calculation Helper Functions ---
 
@@ -249,10 +249,10 @@ if __name__ == "__main__":
     t0 = time.time()
     
     # 1. Define Geometry and Mesh Parameters
-    beam_length = 10.0 # L
-    beam_height = 2.0  # h
-    num_elements_x = 100 # Nx
-    num_elements_y = 20  # Ny
+    beam_length = 1000.0 # L
+    beam_height = 20.0  # h
+    num_elements_x = 200 # Nx
+    num_elements_y = 4  # Ny
 
     print("--- Starting Static Analysis ---")
     
@@ -261,13 +261,13 @@ if __name__ == "__main__":
     print(f"Mesh generated with {my_mesh.tot_node_num} nodes and {my_mesh.tot_elem_num} elements.")
 
     # 3. Define Material Properties
-    rho_steel = 2300.0 # 7.85e-9 # t/mm^3
-    E_steel = 432E+6 # 210000.0  # MPa
+    rho_steel = 7.85e-9 # t/mm^3
+    E_steel = 210000.0  # MPa
     v_steel = 0.3
     
     steel = Material(rho=rho_steel, E=E_steel, poisson=v_steel)
     # Set cross-section (thickness) for plane stress/strain
-    beam_thickness = 0.50 # Example: 10 mm out-of-plane thickness
+    beam_thickness = 10.0 # Example: 10 mm out-of-plane thickness
     steel.cross_section(H=beam_height, W=beam_thickness) 
     print(f"Material: Young's Modulus={steel.E/1e3:.1f} GPa, Poisson's Ratio={steel.v}, Thickness={steel.w} mm")
 

@@ -239,8 +239,8 @@ if __name__ == "__main__":
     L = 10.0
     h = 2.0
     w = 0.5
-    Nx = 10
-    Ny = 2
+    Nx = 200
+    Ny = 4
     dt = 1e-4
     t_end = 2.0
     force_time = 0.0                # 外力施加的時間 (秒)
@@ -280,5 +280,5 @@ if __name__ == "__main__":
     print(f"Modal participation for mode 1: α = {alpha:.4f}")
     
 
-    from postprocess_auto import auto_postprocess
-    auto_postprocess(msh, results, solver.tns, skip=200, scale=50.0, dt=dt)
+    # from postprocess_auto import auto_postprocess
+    # auto_postprocess(msh, results, solver.tns, skip=200, scale=50.0, dt=dt)

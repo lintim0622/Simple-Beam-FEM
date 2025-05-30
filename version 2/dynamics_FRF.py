@@ -12,7 +12,7 @@ from scipy.sparse import csr_matrix # <--- 新增: 導入 csr_matrix
 
 # From your provided structure, Mesh, Material, and Calculate should be imported from your mesh_module.py and static_analysis_solver.py.
 # Assuming mesh_module.py is renamed to mesh_v2.py and static_analysis_solver.py functions are in a Calculate class in static_v2.py for the original user context.
-from mesh_v2 import Mesh, Material
+from mesh_v2 import Mesh, Material, timer
 from static_v2 import Calculate # This should be your static_analysis_solver.py's Calculate class
 
 def compute_rayleigh_damping(alpha, beta, M, K):
@@ -121,7 +121,7 @@ class FRFSolver:
         # But if compute_rayleigh_damping takes dense, we need to convert back.
         # For this specific case, as M_ff and K_ff are already CSR, their linear combination is also CSR.
         # So, the above line can be simplified to:
-        self.C_ff = (alpha * self.M_ff + beta * self.K_ff).tocsr()
+        # self.C_ff = (alpha * self.M_ff + beta * self.K_ff).tocsr()
 
 
     def assemble_force_vector(self, free_dof_id, amplitude=1.0):
@@ -133,6 +133,7 @@ class FRFSolver:
         F_f[free_dof_id] = amplitude
         return F_f
 
+    @timer
     def solve_frf(self, input_dof_global, output_dof_global, freq_range, amplitude=1.0):
         """
         Solves for the Frequency Response Function (FRF) given input and output DOFs.
@@ -228,8 +229,8 @@ if __name__ == "__main__":
     L = 10.0  # meters
     h = 0.2   # meters (height of beam, was 2.0, reduced for more beam-like proportions)
     w = 0.5   # meters (out-of-plane thickness)
-    Nx = 100  # Number of elements in X (can increase to 200 or 400 for better accuracy, but will slow down)
-    Ny = 2    # Number of elements in Y
+    Nx = 200  # Number of elements in X (can increase to 200 or 400 for better accuracy, but will slow down)
+    Ny = 4    # Number of elements in Y
 
     msh = Mesh(L, h, Nx, Ny)
 

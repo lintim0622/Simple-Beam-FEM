@@ -2,6 +2,8 @@
 import numpy as np
 import time
 from sys import exit
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import spsolve, factorized
 
 # Import classes and timer from mesh_module
 from mesh_v2 import Material, Mesh, timer
@@ -218,20 +220,58 @@ class Calculate(object):
 
         return K_modified, F_modified, constrained_dofs
 
+    # @timer
+    # def solve_static_system(self, K_global_modified, F_global_modified):
+    #     """
+    #     Solves the linear system of equations K * U = F for U (global displacements).
+    #     Uses numpy.linalg.solve for robust solution.
+    #     """
+    #     print(f"Solving for {len(F_global_modified)} degrees of freedom...")
+    #     try:
+    #         U_global = np.linalg.solve(K_global_modified, F_global_modified)
+    #         print("System solved successfully.")
+    #         return U_global
+    #     except np.linalg.LinAlgError as e:
+    #         print(f"Error: Linear system could not be solved. Check boundary conditions for stability. Details: {e}")
+    #         return np.zeros_like(F_global_modified) # Return zeros or handle error appropriately
+        
     @timer
-    def solve_static_system(self, K_global_modified, F_global_modified):
+    def solve_static_system(self, K_global_modified, F_global_modified, method='sparse'):
         """
-        Solves the linear system of equations K * U = F for U (global displacements).
-        Uses numpy.linalg.solve for robust solution.
+        Solves the linear system K * U = F for U (global displacements).
+        
+        Parameters:
+            method (str): One of 'dense', 'sparse', or 'factorized'
         """
-        print(f"Solving for {len(F_global_modified)} degrees of freedom...")
+        print(f"Solving system using method = '{method}' for {len(F_global_modified)} DOFs...")
+        
         try:
-            U_global = np.linalg.solve(K_global_modified, F_global_modified)
+            if method == 'dense':
+                # 使用 numpy dense solver
+                U_global = np.linalg.solve(K_global_modified, F_global_modified)
+    
+            elif method == 'sparse':
+                # 使用 scipy sparse solver (spsolve)
+                K_sparse = csr_matrix(K_global_modified)
+                U_global = spsolve(K_sparse, F_global_modified)
+    
+            elif method == 'factorized':
+                # 使用 cached factorized solver
+                if not hasattr(self, "_factorized_solver"):
+                    print("Factorizing matrix for reuse...")
+                    self._factorized_solver = factorized(csr_matrix(K_global_modified))
+                U_global = self._factorized_solver(F_global_modified)
+    
+            else:
+                raise ValueError(f"Unknown solver method: {method}")
+    
             print("System solved successfully.")
             return U_global
-        except np.linalg.LinAlgError as e:
-            print(f"Error: Linear system could not be solved. Check boundary conditions for stability. Details: {e}")
-            return np.zeros_like(F_global_modified) # Return zeros or handle error appropriately
+    
+        except Exception as e:
+            print(f"Error solving system: {e}")
+            return np.zeros_like(F_global_modified)
+
 
     # Methods to retrieve global matrices/vector (after assembly)
     def get_mass_matrix(self):
@@ -251,8 +291,8 @@ if __name__ == "__main__":
     # 1. Define Geometry and Mesh Parameters
     beam_length = 1000.0 # L
     beam_height = 20.0  # h
-    num_elements_x = 200 # Nx
-    num_elements_y = 4  # Ny
+    num_elements_x = 400 # Nx
+    num_elements_y = 8  # Ny
 
     print("--- Starting Static Analysis ---")
     
@@ -326,9 +366,10 @@ if __name__ == "__main__":
 
     # 8. Apply Boundary Conditions to Global System
     K_modified, F_modified, constrained_dofs = fem_solver.apply_boundary_conditions(K_global, F_global)
-
+    
     # 9. Solve for Global Displacements
-    U_global = fem_solver.solve_static_system(K_modified, F_modified)
+    # U_global = fem_solver.solve_static_system(K_modified, F_modified)
+    U_global = fem_solver.solve_static_system(K_modified, F_modified, method='sparse')
 
     # 10. Update Node Displacements in the Mesh
     for node in my_mesh.nodes:
@@ -349,6 +390,16 @@ if __name__ == "__main__":
     if mid_bottom_node:
         print(f"Mid-Bottom Node ({mid_bottom_node.nid}): u_x={mid_bottom_node.displacement[0]:.6e}, u_y={mid_bottom_node.displacement[1]:.6e}")
 
+    
+    def compute_theoretical_deflection(P=force_node.f_ext[1], Material=steel, L=beam_length):
+        delta_max = (P * L**3) / (48 * Material.E * Material.I)
+        return delta_max
+    
+    print("\n--- Theoretical Midpoint Deflection ---")
+    theory_deflection = compute_theoretical_deflection()
+    print(f"Theoretical maximum deflection: {theory_deflection:.6f} mm")
+
+    
     # 11. Post-processing: Calculate Stresses and Strains (at element center)
     print("\n--- Element Stresses and Strains (at element center) ---")
     
@@ -402,4 +453,4 @@ if __name__ == "__main__":
 
     # 12. Visualization of Mesh and Deformed Shape
     # The plot_mesh method is now part of the Mesh class, imported from mesh_module
-    my_mesh.plot_mesh(is_plot=True, scale_factor=1) # Scale factor can be adjusted for visualization
+    my_mesh.plot_mesh(is_plot=False, scale_factor=1) # Scale factor can be adjusted for visualization
